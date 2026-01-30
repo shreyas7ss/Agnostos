@@ -1,0 +1,31 @@
+# Production dependencies for Agnostos Lab
+
+# Core Framework
+streamlit
+langgraph
+langchain
+langchain-core
+
+# ML/AI
+transformers
+torch
+ultralytics
+scikit-learn
+
+# Vision
+clip
+Pillow
+
+# Code Execution
+e2b
+modal
+
+# Data & Stats
+pandas
+numpy
+matplotlib
+seaborn
+
+# Utilities
+python-dotenv
+pydantic
