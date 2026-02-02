@@ -18,13 +18,11 @@ class Settings(BaseSettings):
     """
     
     # ============ LLM Configuration ============
-    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     llm_model: str = "gpt-4o"
     llm_temperature: float = 0.1
     
     # ============ Sandbox Configuration ============
-    e2b_api_key: str = os.getenv("E2B_API_KEY", "")
     sandbox_timeout: int = 300  # 5 minutes default
     max_retries: int = 3  # Max self-heal attempts
     
@@ -54,7 +52,6 @@ class Settings(BaseSettings):
         """
         return {
             "openai": bool(self.openai_api_key),
-            "e2b": bool(self.e2b_api_key),
             "anthropic": bool(self.anthropic_api_key),
             "modal": bool(self.modal_token_id and self.modal_token_secret)
         }

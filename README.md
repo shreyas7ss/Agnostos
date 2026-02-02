@@ -54,6 +54,7 @@ agnostos-lab/
 
 5. **The Verdict**: The Judge Agent performs a weighted evaluation of Accuracy vs. Latency and prepares a deployment-ready FastAPI wrapper.
 
+Since you are using Modal for compute and Neon for your database, you’ve created a fully serverless, high-performance stack.
 ## 🏁 Quick Start
 
 ### Prerequisites
@@ -79,3 +80,5 @@ pip install -r requirements.txt
 ```bash
 streamlit run app.py
 ```
+
+
