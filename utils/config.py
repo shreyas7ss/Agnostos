@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -16,7 +17,8 @@ class Settings(BaseSettings):
     Application settings with environment variable support.
     All settings can be overridden via environment variables.
     """
-    
+    #--------------setting up the DB-------
+    database_url: str = os.getenv("DATABASE_URL", "")
     # ============ LLM Configuration ============
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     llm_model: str = "gpt-4o"
@@ -42,6 +44,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore" 
     
     def validate_keys(self) -> dict[str, bool]:
         """
