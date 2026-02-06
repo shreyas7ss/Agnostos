@@ -2,7 +2,7 @@
 State Definition - Shared memory State (TypedDict) for inter-agent context
 Defines the state schema for LangGraph workflow
 """
-from typing import TypedDict, List, Optional, Annotated
+from typing import TypedDict, List, Optional, Annotated,Dict
 from pydantic import BaseModel,Field
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -18,4 +18,8 @@ class AgentState(BaseModel):
     
     next_step:Optional[str] =None
 
+    candidate_scripts: List[Dict] =Field(default_factory=list)
+
+    final_output : Optional[Dict] = None
+    
 

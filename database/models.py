@@ -1,3 +1,5 @@
+from sklearn.metrics._dist_metrics import DiceDistance
+from cv2 import detail
 from datetime import datetime
 from typing import List,Optional
 from sqlalchemy import ForeignKey,DateTime,Integer,String
@@ -24,8 +26,7 @@ class AgentStep(Base):
     id : Mapped[int] = mapped_column(Integer,primary_key=True)
     agent_name : Mapped[str] = mapped_column(String(50),nullable=False)
     thought : Mapped[str]
-    toolcall :Mapped[Optional[str]]
-    result:Mapped[Optional[str]]
+    details : Mapped[Optional[Dict[str,Any]]]=mapped_column(JSONB)
     timestamp : Mapped[datetime] = mapped_column(default=datetime.utcnow())
 
     experiment :Mapped["Experiment"] = relationship(back_populates="steps")
