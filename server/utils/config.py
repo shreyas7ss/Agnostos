@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     database_url: str = os.getenv("DATABASE_URL", "")
     # ============ LLM Configuration ============
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    llm_model: str = "gpt-4o"
+    llm_model: str = "openai/gpt-oss-120b"
     llm_temperature: float = 0.1
     
     # ============ Sandbox Configuration ============
