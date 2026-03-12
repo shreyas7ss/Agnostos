@@ -53,10 +53,10 @@ async def judge_agent(state: AgentState) -> Dict:
     prompt = f"""
     You are the Lead Judge at Agnostos Lab. 
     Review the champion: {champion_bundle['approach_name']} 
-    With Accuracy: {champion_bundle['accuracy']}
+    With Metrics: {champion_bundle['metrics']}
     
     Provide a 2-sentence final verdict:
-    1. Confirm why this specific approach is the best choice.
+    1. Confirm why this specific approach and its metrics make it the best choice.
     2. Mention that the source code has been successfully archived for deployment.
     """
     verdict_summary = llm.invoke(prompt).content

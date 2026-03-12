@@ -3,10 +3,12 @@ FastAPI routes for Agnostos Lab
 """
 
 import os
-import shutil
+from supabase import create_client
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from utils.config import settings
 
 from graph.workflow import agnostos_graph
 from database.session import SessionLocal
@@ -31,8 +33,10 @@ async def startup():
     init_db()
 
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Supabase client — use service_role key for server-side uploads (bypasses RLS)
+_supabase_key = settings.supabase_service_key or settings.supabase_key
+_supabase = create_client(settings.supabase_url, _supabase_key)
+
 
 
 class ExperimentRequest(BaseModel):
@@ -42,11 +46,19 @@ class ExperimentRequest(BaseModel):
 
 @app.post("/upload")
 async def upload_dataset(file: UploadFile = File(...)):
-    """Saves an uploaded dataset file and returns its server-side path."""
-    dest = os.path.join(UPLOAD_DIR, file.filename)
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    return {"dataset_path": os.path.abspath(dest)}
+    """Uploads a dataset to Supabase Storage and returns its public URL."""
+    file_bytes = await file.read()
+    storage_path = f"uploads/{file.filename}"
+
+    # Upload (upsert so re-uploads work)
+    _supabase.storage.from_(settings.supabase_bucket).upload(
+        path=storage_path,
+        file=file_bytes,
+        file_options={"upsert": "true", "content-type": file.content_type or "text/csv"},
+    )
+
+    public_url = _supabase.storage.from_(settings.supabase_bucket).get_public_url(storage_path)
+    return {"dataset_path": public_url}
 
 
 async def run_agnostas_task(experiment_id: int, dataset_path: str, target_column: str):

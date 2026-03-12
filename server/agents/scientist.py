@@ -3,10 +3,9 @@ Scientist Agent - Generates custom training logic
 Supports YOLO, Transformers, and Tree-based models
 """
 
-from http.client import responses
 import json
-from typing import List,Dict
-from pydantic import BaseModel,Field
+import re
+from typing import List, Dict
 from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 
@@ -14,63 +13,66 @@ from graph.state import AgentState
 from utils.config import settings
 
 
-class MLScript(BaseModel):
-  approach_name: str = Field(description="name of the model or stratergy")
-  explanation: str = Field(description="breif reasoning for choosing this stratergy")
-  code: str = Field(description="The COMPLETE, standalone Python code to load data, train, and save metrics.json.")
+def scientist_agent(State: AgentState) -> Dict:
+    llm = ChatGroq(model=settings.llm_model, temperature=0.7)
 
+    manifesto = State.data_manifesto
+    data_type = manifesto.get("data_type", "tabular")
+    num_attempts = settings.max_parallel_attempts
 
-class ScienctistProposals(BaseModel):
-    experiments : List[MLScript] = Field(description="A list of distinct parallel proposals. ")
-
-#this agent goes through the manifesto and genrates multiple experiments and its complete scripts
-def scientist_agent(State : AgentState)->Dict:
-    llm=ChatGroq(model=settings.llm_model,temperature=0.7)
-    structured_llm=llm.with_structured_output(ScienctistProposals)
-
-    manifesto=State.data_manifesto
-    data_type=manifesto.get("data_type","tabular")
-    num_attempts=settings.max_parallel_attempts
-
-    if data_type=="image":
+    if data_type == "image":
         task_specifics = "Use PyTorch. Focus on architectures like ResNet, EfficientNet, or ViT. Include standard image augmentations."
     else:
         task_specifics = "Use Scikit-Learn, XGBoost, or LightGBM. Focus on feature engineering, scaling, and handling imbalances."
 
-    system_prompt = f"""
-    You are a Senior Machine Learning Scientist at Agnostos Lab.
-    Your goal is to propose {num_attempts} high-quality, diverse experiments to solve the task.
-    
-    DATA MANIFESTO:
-    {json.dumps(manifesto, indent=2)}
-    
-    DATASET PATH: {State.dataset_path}
-    
-    INSTRUCTIONS:
-    1. Propose EXACTLY {num_attempts} different experiments.
-    2. {task_specifics}
-    3. Each 'code' block must be a complete script that:
-       - Loads data from '{State.dataset_path}'.
-       - Preprocesses data correctly based on the manifesto.
-       - Trains the model.
-       - Saves a 'metrics.json' file containing at least '{{"accuracy": value, "loss": value}}'.
-    4. Ensure the scripts are standalone and require no external input.
-    """
+    system_prompt = f"""You are a Senior Machine Learning Scientist at Agnostos Lab.
+Propose EXACTLY {num_attempts} diverse ML experiments for this task.
+
+DATA MANIFESTO:
+{json.dumps(manifesto, indent=2)}
+
+DATASET URL: {State.dataset_path}
+
+INSTRUCTIONS:
+1. {task_specifics}
+2. Each script MUST:
+   - Load data with: df = pd.read_csv('{State.dataset_path}')
+   - Train a model on the target column in the manifesto.
+   - Save results: json.dump({{"accuracy": float, "f1_score": float, "recall": float, "precision": float}}, open('metrics.json','w'))
+3. Scripts must be fully standalone — no user input, no external files.
+
+Return ONLY a valid JSON object in this exact format (no markdown, no explanation):
+{{
+  "experiments": [
+    {{
+      "approach_name": "Short strategy name",
+      "explanation": "One sentence reasoning",
+      "code": "import pandas as pd\\n..."
+    }}
+  ]
+}}"""
 
     try:
-        responses = structured_llm.invoke(system_prompt)
-        candidate_scripts = [exp.model_dump() for exp in responses.experiments] # converting the pydantic object to a class 
-        candidate_scripts=candidate_scripts[:num_attempts]
-    
-        summary_text = f"Proposing {len(candidate_scripts)} strategies: " + \
-                      ", ".join([s['approach_name'] for s in candidate_scripts])
-  
-    except:
-        candidate_scripts=[]
-        summary_text="Scientist failed to genrate valid proposal"
+        response = llm.invoke([{"role": "user", "content": system_prompt}])
+        raw = response.content.strip()
 
-    return{                          #updating the the global state
-        "candidate_scripts":candidate_scripts,
-        "messages":[AIMessage(content=summary_text)],
-        "next_step":"judge"
+        # Strip markdown fences if present
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+
+        parsed = json.loads(raw)
+        candidate_scripts = parsed.get("experiments", [])[:num_attempts]
+
+        summary_text = f"Proposing {len(candidate_scripts)} strategies: " + \
+                       ", ".join([s["approach_name"] for s in candidate_scripts])
+
+    except Exception as e:
+        print(f"[SCIENTIST ERROR] {e}")
+        candidate_scripts = []
+        summary_text = f"Scientist failed to generate valid proposal: {str(e)[:200]}"
+
+    return {
+        "candidate_scripts": candidate_scripts,
+        "messages": [AIMessage(content=summary_text)],
+        "next_step": "judge"
     }

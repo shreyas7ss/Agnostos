@@ -25,8 +25,14 @@ class Settings(BaseSettings):
     database_url: str = os.getenv("DATABASE_URL", "")
     # ============ LLM Configuration ============
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    llm_model: str = "openai/gpt-oss-120b"
+    llm_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     llm_temperature: float = 0.1
+
+    # ============ Supabase Storage ============
+    supabase_url: str = os.getenv("SUPABASE_URL", "")
+    supabase_key: str = os.getenv("SUPABASE_KEY", "")
+    supabase_service_key: str = os.getenv("SUPABASE_SERVICE_KEY", "")  # service_role key for server uploads
+    supabase_bucket: str = os.getenv("SUPABASE_BUCKET_NAME", "datasets")
     
     # ============ Sandbox Configuration ============
     sandbox_timeout: int = 300  # 5 minutes default
